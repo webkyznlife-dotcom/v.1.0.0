@@ -1,0 +1,1501 @@
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+
+import axios from 'axios';
+
+// Layout components (pastikan path sesuai struktur project)
+import { Container, Row, Column, Box } from '../../components/layout';
+
+// Ant Design
+import { Card, Avatar, Typography, Space, Select, Table, Col, Tag, Button, ConfigProvider, Input, List  } from 'antd';
+
+
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
+
+// Recharts
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Line,
+  LabelList,
+  BarChart,
+  Bar,
+  LineChart,
+  Legend,
+} from 'recharts';
+
+// Icons
+import {
+  UserOutlined,
+  DollarOutlined,
+  ShoppingCartOutlined,
+  CalendarOutlined,
+  EyeOutlined,
+  TeamOutlined,
+  LineChartOutlined,
+  BarChartOutlined,
+  AreaChartOutlined,
+} from '@ant-design/icons';
+import { title } from 'process';
+import { TopClassPerBranchCard } from './components/participant/TopClassPerBranchCard';
+import { ClassDistributionCard } from './components/participant/ClassDistributionCard';
+import { AverageAgeByBranchCard } from './components/participant/AverageAgeByBranchCard';
+import { InquiryAnalysisCard } from './components/contact/InquiryAnalysisCard';
+
+const { Title, Text } = Typography;
+
+
+
+// =========================
+// Types
+// =========================
+
+type AgeCategory = {
+  id: number;
+  name: string;
+};
+
+
+interface TrialParticipant {
+  key: string;
+  no: number;
+  name: string;
+  dateOfBirth: string;
+  ageCategory: string;
+  email: string;
+  whatsapp: string;
+  branch: string;
+  trialClass: string;
+  day: string;
+  time: string;
+  status?: string; // optional
+}
+
+interface AgentData {
+  key: string;
+  no: number;
+  agentName: string;
+  avatar: string;
+  invective: string;
+  totalAmount: number;
+}
+
+interface MemberData {
+  key: string;
+  no: number;
+  memberName: string;
+  avatar: string;
+  membership: string;
+  totalSpent: number;
+}
+
+interface DashboardPageProps {
+  isSidebarOpen: boolean;
+  isMobile: boolean;
+  toggleSidebar: () => void;
+}
+
+
+  const FreeTrialStatCard: React.FC = () => {
+
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 2, currentYear - 1, currentYear];
+
+  const [current, setCurrent] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [branch, setBranch] = useState<string>('All');
+  const [category, setCategory] = useState<string>('All');
+  const [month, setMonth] = useState<string | number>("All");
+
+
+  const months = [
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+
+  const categoryOptions = [
+    { id: 1, name: "Adult" },
+      { id: 3, name: "Junior" }
+  ];
+
+  const paginationConfig: TablePaginationConfig = {
+    current,
+    pageSize,
+    showSizeChanger: true,
+    pageSizeOptions: [10, 20, 50],
+    onChange: (page, size) => {
+      setCurrent(page);
+      if (size && size !== pageSize) setPageSize(size);
+    },
+    onShowSizeChange: (_page, size) => {
+      setCurrent(1);        // reset ke halaman 1 saat ganti page size
+      setPageSize(size);
+    },
+    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+  };
+
+
+  const dataSource: TrialParticipant[] = [
+    {
+      key: '1',
+      no: 1,
+      name: 'John Doe',
+      dateOfBirth: '2010-05-12',
+      ageCategory: 'Kids',
+      email: 'johndoe@email.com',
+      whatsapp: '+6281111111111',
+      branch: 'BSD',
+      trialClass: 'Taekwondo',
+      day: 'Monday',
+      time: '10:00 AM',
+      status: 'Booked',
+    },
+    {
+      key: '2',
+      no: 2,
+      name: 'Sarah Lim',
+      dateOfBirth: '2005-11-20',
+      ageCategory: 'Teens',
+      email: 'sarah.lim@email.com',
+      whatsapp: '+6281222222222',
+      branch: 'Sentul',
+      trialClass: 'Yoga',
+      day: 'Wednesday',
+      time: '04:00 PM',
+      status: 'Attended',
+    },
+    {
+      key: '3',
+      no: 3,
+      name: 'Michael Tan',
+      dateOfBirth: '1998-07-03',
+      ageCategory: 'Adults',
+      email: 'michael.tan@email.com',
+      whatsapp: '+6281333333333',
+      branch: 'Kuningan',
+      trialClass: 'Dance',
+      day: 'Saturday',
+      time: '02:00 PM',
+      status: 'Converted to Member',
+    },
+    {
+      key: '4',
+      no: 4,
+      name: 'Emily Chen',
+      dateOfBirth: '2012-09-15',
+      ageCategory: 'Kids',
+      email: 'emily.chen@email.com',
+      whatsapp: '+6281444444444',
+      branch: 'BSD',
+      trialClass: 'Ballet',
+      day: 'Tuesday',
+      time: '03:00 PM',
+      status: 'Attended',
+    },
+    {
+      key: '5',
+      no: 5,
+      name: 'David Lee',
+      dateOfBirth: '2007-01-30',
+      ageCategory: 'Teens',
+      email: 'david.lee@email.com',
+      whatsapp: '+6281555555555',
+      branch: 'BSD',
+      trialClass: 'Taekwondo',
+      day: 'Thursday',
+      time: '05:00 PM',
+      status: 'Booked',
+    },
+    {
+      key: '6',
+      no: 6,
+      name: 'Anna Wong',
+      dateOfBirth: '1995-03-22',
+      ageCategory: 'Adults',
+      email: 'anna.wong@email.com',
+      whatsapp: '+6281666666666',
+      branch: 'Kuningan',
+      trialClass: 'Yoga',
+      day: 'Friday',
+      time: '07:00 PM',
+      status: 'Attended',
+    },
+    {
+      key: '7',
+      no: 7,
+      name: 'Kevin Hartono',
+      dateOfBirth: '2011-08-09',
+      ageCategory: 'Kids',
+      email: 'kevin.h@email.com',
+      whatsapp: '+6281777777777',
+      branch: 'Sentul',
+      trialClass: 'Swimming',
+      day: 'Sunday',
+      time: '09:00 AM',
+      status: 'Booked',
+    },
+    {
+      key: '8',
+      no: 8,
+      name: 'Olivia Tan',
+      dateOfBirth: '2006-12-18',
+      ageCategory: 'Teens',
+      email: 'olivia.t@email.com',
+      whatsapp: '+6281888888888',
+      branch: 'Sentul',
+      trialClass: 'Dance',
+      day: 'Monday',
+      time: '11:00 AM',
+      status: 'Attended',
+    },
+    {
+      key: '9',
+      no: 9,
+      name: 'Daniel Park',
+      dateOfBirth: '1992-04-10',
+      ageCategory: 'Adults',
+      email: 'daniel.park@email.com',
+      whatsapp: '+6281999999999',
+      branch: 'BSD',
+      trialClass: 'Gymnastics',
+      day: 'Wednesday',
+      time: '06:00 PM',
+      status: 'Absent',
+    },
+    {
+      key: '10',
+      no: 10,
+      name: 'Sophia Widjaja',
+      dateOfBirth: '2013-11-05',
+      ageCategory: 'Kids',
+      email: 'sophia.w@email.com',
+      whatsapp: '+6282111111111',
+      branch: 'BSD',
+      trialClass: 'Taekwondo',
+      day: 'Friday',
+      time: '04:00 PM',
+      status: 'Attended',
+    },
+    {
+      key: '11',
+      no: 11,
+      name: 'Jason Lim',
+      dateOfBirth: '2004-02-14',
+      ageCategory: 'Teens',
+      email: 'jason.lim@email.com',
+      whatsapp: '+6282222222222',
+      branch: 'Kuningan',
+      trialClass: 'Yoga',
+      day: 'Saturday',
+      time: '01:00 PM',
+      status: 'Booked',
+    },
+    {
+      key: '12',
+      no: 12,
+      name: 'Rachel Kim',
+      dateOfBirth: '1999-06-27',
+      ageCategory: 'Adults',
+      email: 'rachel.kim@email.com',
+      whatsapp: '+6282333333333',
+      branch: 'Sentul',
+      trialClass: 'Dance',
+      day: 'Sunday',
+      time: '03:00 PM',
+      status: 'Converted to Member',
+    },
+    {
+      key: '13',
+      no: 13,
+      name: 'Andrew Pratama',
+      dateOfBirth: '2010-07-21',
+      ageCategory: 'Kids',
+      email: 'andrew.p@email.com',
+      whatsapp: '+6282444444444',
+      branch: 'BSD',
+      trialClass: 'Ballet',
+      day: 'Monday',
+      time: '02:00 PM',
+      status: 'Booked',
+    },
+    {
+      key: '14',
+      no: 14,
+      name: 'Jessica Liu',
+      dateOfBirth: '2008-10-16',
+      ageCategory: 'Teens',
+      email: 'jessica.liu@email.com',
+      whatsapp: '+6282555555555',
+      branch: 'BSD',
+      trialClass: 'Swimming',
+      day: 'Tuesday',
+      time: '10:00 AM',
+      status: 'Attended',
+    },
+    {
+      key: '15',
+      no: 15,
+      name: 'Markus Santoso',
+      dateOfBirth: '1996-09-01',
+      ageCategory: 'Adults',
+      email: 'markus.s@email.com',
+      whatsapp: '+6282666666666',
+      branch: 'Sentul',
+      trialClass: 'Yoga',
+      day: 'Wednesday',
+      time: '08:00 PM',
+      status: 'Absent',
+    },
+    {
+      key: '16',
+      no: 16,
+      name: 'Clara Ong',
+      dateOfBirth: '2012-01-07',
+      ageCategory: 'Kids',
+      email: 'clara.ong@email.com',
+      whatsapp: '+6282777777777',
+      branch: 'Sentul',
+      trialClass: 'Taekwondo',
+      day: 'Thursday',
+      time: '09:00 AM',
+      status: 'Attended',
+    },
+    {
+      key: '17',
+      no: 17,
+      name: 'Ryan Chandra',
+      dateOfBirth: '2005-05-25',
+      ageCategory: 'Teens',
+      email: 'ryan.c@email.com',
+      whatsapp: '+6282888888888',
+      branch: 'BSD',
+      trialClass: 'Dance',
+      day: 'Friday',
+      time: '05:00 PM',
+      status: 'Booked',
+    },
+    {
+      key: '18',
+      no: 18,
+      name: 'Natalie Ho',
+      dateOfBirth: '1993-12-02',
+      ageCategory: 'Adults',
+      email: 'natalie.ho@email.com',
+      whatsapp: '+6282999999999',
+      branch: 'Kuningan',
+      trialClass: 'Gymnastics',
+      day: 'Saturday',
+      time: '11:00 AM',
+      status: 'Attended',
+    },
+    {
+      key: '19',
+      no: 19,
+      name: 'William Chen',
+      dateOfBirth: '2011-03-19',
+      ageCategory: 'Kids',
+      email: 'william.c@email.com',
+      whatsapp: '+6283111111111',
+      branch: 'Kuningan',
+      trialClass: 'Ballet',
+      day: 'Sunday',
+      time: '01:00 PM',
+      status: 'Booked',
+    },
+    {
+      key: '20',
+      no: 20,
+      name: 'Grace Park',
+      dateOfBirth: '2007-08-11',
+      ageCategory: 'Teens',
+      email: 'grace.p@email.com',
+      whatsapp: '+6283222222222',
+      branch: 'Kuningan',
+      trialClass: 'Swimming',
+      day: 'Monday',
+      time: '03:00 PM',
+      status: 'Converted to Member',
+    },
+  ];
+
+
+  const branchOptions = useMemo(
+    () => Array.from(new Set(dataSource.map(d => d.branch))),
+    [dataSource]
+  );
+
+    const columns: ColumnsType<TrialParticipant> = [
+      { title: 'No', dataIndex: 'no', key: 'no', width: 70, fixed: 'left' },
+      { title: 'Name', dataIndex: 'name', key: 'name' },
+      { title: 'Age / Category', dataIndex: 'ageCategory', key: 'ageCategory', width: 140 },
+      { title: 'Branch', dataIndex: 'branch', key: 'branch', width: 140 },
+      { title: 'Trial Class', dataIndex: 'trialClass', key: 'trialClass', width: 160 },
+      {
+        title: 'Schedule',
+        key: 'schedule',
+        width: 160,
+        render: (_, r) => `${r.day}, ${r.time}`,
+      },
+      {
+        title: 'Detail',
+        key: 'action',
+        width: 140,
+        align: 'center' as const,
+        render: (_: any, record: TrialParticipant) => (
+          <Button
+            icon={<EyeOutlined />}
+            size="small"
+            style={{ backgroundColor: '#10b981', borderColor: '#10b981', color: '#fff' }} // hijau teal
+            onClick={() => console.log('View trial participant:', record)}
+          >
+            Detail
+          </Button>
+        ),
+      }
+
+  ];
+
+  return (
+    <Column size={12}>
+      <Card
+        style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }}
+        className="custom-card"
+      >
+          <Title level={5} style={styles.titleFreeTrialCard}>
+            Free trial / class participants
+          </Title>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+              marginBottom: 16,
+            }}
+          >
+            {/* Kiri: Search */}
+            <Input.Search
+              placeholder="Search participants, class, branch…"
+              allowClear
+              style={{ width: '30%' }}
+              onSearch={(val) => console.log('search:', val)}
+            />
+
+            {/* Kanan: Branch & Year */}
+            <Space size="middle" align="center">
+
+              <span>Month: </span>
+              <Select
+                value={month}
+                onChange={setMonth}
+                style={{ width: 150 }}
+              >
+                <Select.Option value="All">All Months</Select.Option>
+                {months.map((m) => (
+                  <Select.Option key={m.value} value={m.value}>
+                    {m.label}
+                  </Select.Option>
+                ))}
+              </Select>
+
+              <span>Age / Category :</span>
+              <Select
+                value={category}
+                onChange={setCategory}
+                style={{ width: 150 }}
+              >
+                <Select.Option value="All">All Categories</Select.Option>
+                {categoryOptions.map((c) => (
+                  <Select.Option key={c.id} value={c.name}>
+                    {c.name}
+                  </Select.Option>
+                ))}
+              </Select>
+                            
+              <span>Branch :</span>
+              <Select
+                value={branch}
+                onChange={setBranch}
+                style={{ width: 150 }}
+              >
+                <Select.Option value="All">All Branches</Select.Option>
+                {branchOptions.map((b) => (
+                  <Select.Option key={b} value={b}>
+                    {b}
+                  </Select.Option>
+                ))}
+              </Select>
+
+            </Space>
+          </div>       
+
+        <Table<TrialParticipant>
+          rowKey="key"
+          dataSource={dataSource}
+          columns={columns}
+          pagination={paginationConfig}
+          size="middle"
+          bordered={false}
+        />
+        
+      </Card>
+    </Column>
+  );
+};
+
+const ParticipantByBranchStatCard: React.FC = () => {
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 2, currentYear - 1, currentYear];
+
+  const months = [
+    { value: "Jan", label: "January" },
+    { value: "Feb", label: "February" },
+    { value: "Mar", label: "March" },
+    { value: "Apr", label: "April" },
+    { value: "Mei", label: "May" },
+    { value: "Jun", label: "June" },
+    { value: "Jul", label: "July" },
+    { value: "Aug", label: "August" },
+    { value: "Sept", label: "September" },
+    { value: "Oct", label: "October" },
+    { value: "Nov", label: "November" },
+    { value: "Dec", label: "December" },
+  ];
+
+  const [month, setMonth] = React.useState<string>("All");
+
+  const data = [
+    { name: "Jan", kuningan: 400, bsd: 400, sentul: 400, semarang: 300 },
+    { name: "Feb", kuningan: 450, bsd: 380, sentul: 420, semarang: 320 },
+    { name: "Mar", kuningan: 470, bsd: 390, sentul: 410, semarang: 330 },
+    { name: "Apr", kuningan: 420, bsd: 410, sentul: 430, semarang: 340 },
+    { name: "Mei", kuningan: 460, bsd: 420, sentul: 440, semarang: 350 },
+    { name: "Jun", kuningan: 480, bsd: 430, sentul: 450, semarang: 360 },
+    { name: "Jul", kuningan: 500, bsd: 440, sentul: 460, semarang: 370 },
+    { name: "Aug", kuningan: 510, bsd: 450, sentul: 470, semarang: 380 },
+    { name: "Sept", kuningan: 520, bsd: 460, sentul: 480, semarang: 390 },
+    { name: "Oct", kuningan: 530, bsd: 470, sentul: 490, semarang: 400 },
+    { name: "Nov", kuningan: 540, bsd: 480, sentul: 500, semarang: 410 },
+    { name: "Dec", kuningan: 550, bsd: 490, sentul: 510, semarang: 420 },
+  ];
+
+  // Ambil semua cabang dari keys (selain "name")
+  const branches = Object.keys(data[0]).filter((key) => key !== "name");
+
+  // Warna untuk tiap line (akan berulang kalau cabang > warna)
+  const colors = [
+    "#2E8BFF",
+    "#EE4274",
+    "#00C49F",
+    "#FFBB28",
+    "#8A2BE2",
+    "#FF4500",
+    "#008B8B",
+    "#DC143C",
+    "#556B2F",
+    "#FF69B4",
+  ];
+
+  // Filter data berdasarkan bulan (kalau bukan "All")
+  const filteredData =
+    month === "All" ? data : data.filter((d) => d.name === month);
+
+  return (
+    <Card
+      style={{
+        borderRadius: 14,
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+      }}
+      className="custom-card"
+    >
+
+              <Title level={5} style={styles.titleFreeTrialCard}>
+          Participants by Branch
+        </Title>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+
+        <div>
+          <span style={{ marginRight: 8 }}>Month:</span>
+              <Select
+                value={month}
+                onChange={setMonth}
+                style={{ width: 150 }}
+              >
+                <Select.Option value="All">All Months</Select.Option>
+                {months.map((m) => (
+                  <Select.Option key={m.value} value={m.value}>
+                    {m.label}
+                  </Select.Option>
+                ))}
+              </Select>
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={470}>
+        <LineChart
+          data={filteredData}
+          margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+
+          {branches.map((branch, index) => (
+            <Line
+              key={branch}
+              type="monotone"
+              dataKey={branch}
+              stroke={colors[index % colors.length]}
+              strokeWidth={2}
+              dot={{ r: 2 }}
+            >
+              <LabelList dataKey={branch} position="top" />
+            </Line>
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </Card>
+  );
+};
+
+
+const ParticipantByAgeGroupStatCard: React.FC = () => {
+
+    const months = [
+    { value: "Jan", label: "January" },
+    { value: "Feb", label: "February" },
+    { value: "Mar", label: "March" },
+    { value: "Apr", label: "April" },
+    { value: "Mei", label: "May" },
+    { value: "Jun", label: "June" },
+    { value: "Jul", label: "July" },
+    { value: "Aug", label: "August" },
+    { value: "Sept", label: "September" },
+    { value: "Oct", label: "October" },
+    { value: "Nov", label: "November" },
+    { value: "Dec", label: "December" },
+  ];
+
+  const [month, setMonth] = React.useState<string>("All");
+
+
+  // Contoh data age group
+  const ageGroups = [
+    { range: "0 - 1", count: 10 },
+    { range: "1 - 2", count: 2 },
+    { range: "3 - 5", count: 8 },
+    { range: "6 - 8", count: 15 },
+    { range: "9 - 12", count: 20 },
+    { range: "13 - 15", count: 12 },
+    { range: "16 - 18", count: 6 },
+    { range: "19 - 25", count: 9 },
+    { range: "26 - 35", count: 5 },
+    { range: "36+", count: 3 },
+  ];
+
+  // Urutkan dari yang terbesar ke terkecil
+  const sortedAgeGroups = [...ageGroups].sort((a, b) => b.count - a.count);
+
+  return (
+    <Card
+      style={{
+        borderRadius: 14,
+        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.06)",
+      }}
+      className="custom-card"
+    >
+
+              <Title level={5} style={styles.titleFreeTrialCard}>
+          Participants by Age Group
+        </Title>
+
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
+
+        <div>
+          <span style={{ marginRight: 8 }}>Month:</span>
+              <Select
+                value={month}
+                onChange={setMonth}
+                style={{ width: 150 }}
+              >
+                <Select.Option value="All">All Months</Select.Option>
+                {months.map((m) => (
+                  <Select.Option key={m.value} value={m.value}>
+                    {m.label}
+                  </Select.Option>
+                ))}
+              </Select>
+        </div>
+
+      </div>
+
+      <List
+        dataSource={sortedAgeGroups}
+        renderItem={(item, index) => (
+          <List.Item>
+            <span style={{ fontWeight: 500 }}>
+              {index + 1}. {item.range}
+            </span>
+            <span>{item.count}</span>
+          </List.Item>
+        )}
+      />
+    </Card>
+  );
+};
+
+
+
+
+const ThisWeekStatCard: React.FC = () => (
+  <Column size={12}>
+    <Card style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }} className="custom-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {/* Text + Title */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text type="secondary" style={{ marginTop: 0 }}>
+            This Week Visitors
+          </Text>
+          <Title level={2} style={styles.numberVisitor}>
+            23
+          </Title>
+        </div>
+
+        {/* Avatar icon */}
+        <Avatar style={{ backgroundColor: '#7694ff', marginLeft: 10 }} icon={<LineChartOutlined />} size={50} />
+      </div>
+    </Card>
+  </Column>
+);
+
+const ThisMonthStatCard: React.FC = () => (
+  <Column size={12}>
+    <Card style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }} className="custom-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {/* Text + Title */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text type="secondary" style={{ marginTop: 0 }}>
+            This Month Visitors
+          </Text>
+          <Title level={2} style={styles.numberVisitor}>
+            23
+          </Title>
+        </div>
+
+        {/* Avatar icon */}
+        <Avatar style={{ backgroundColor: '#7694ff', marginLeft: 10 }} icon={<BarChartOutlined />} size={50} />
+      </div>
+    </Card>
+  </Column>
+);
+
+const ThisYearStatCard: React.FC = () => (
+  <Column size={12}>
+    <Card style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }} className="custom-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {/* Text + Title */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text type="secondary" style={{ marginTop: 0 }}>
+            This Year Visitors
+          </Text>
+          <Title level={2} style={styles.numberVisitor}>
+            276
+          </Title>
+        </div>
+
+        {/* Avatar icon */}
+        <Avatar style={{ backgroundColor: '#7694ff', marginLeft: 10 }} icon={<AreaChartOutlined />} size={50} />
+      </div>
+    </Card>
+  </Column>
+);
+
+const TodayOnlineStatCard: React.FC = () => (
+  <Column size={12}>
+    <Card style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }} className="custom-card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+        {/* Text + Title */}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <Text type="secondary" style={{ marginTop: 0 }}>
+            Today’s Online Visitors
+          </Text>
+          <Title level={2} style={styles.numberVisitor}>
+            230
+          </Title>
+        </div>
+
+        {/* Avatar icon */}
+        <Avatar style={styles.numberVisitorIcon} icon={<TeamOutlined />} size={50} />
+      </div>
+    </Card>
+  </Column>
+);
+
+const BarChartCard: React.FC = () => {
+  const currentYear = new Date().getFullYear();
+  const years = [currentYear - 2, currentYear - 1, currentYear];
+
+  // Contoh data, uv untuk bar, count untuk line
+  const data = [
+    { name: 'Jan', bsd: 400, count: 400 },
+    { name: 'Feb', uv: 300, count: 300 },
+    { name: 'Mar', uv: 500, count: 500 },
+    { name: 'Apr', uv: 200, count: 200 },
+    { name: 'Mei', uv: 200, count: 200 },
+    { name: 'Jun', uv: 200, count: 200 },
+    { name: 'Jul', uv: 200, count: 200 },
+    { name: 'Aug', uv: 200, count: 200 },
+    { name: 'Sept', uv: 200, count: 200 },
+    { name: 'Oct', uv: 200, count: 200 },
+    { name: 'Nov', uv: 200, count: 200 },
+    { name: 'Dec', uv: 200, count: 200 },
+  ];
+
+  return (
+    <Column size={12}>
+      <Card style={{ borderRadius: 14, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)' }} className="custom-card">
+        {/* Header: Title kiri, Select kanan */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <Title level={5} style={{ margin: 0 }}>
+            Web Traffic
+          </Title>
+        </div>
+
+        <ResponsiveContainer width="100%" height={398}>
+          <ComposedChart data={data} barCategoryGap="20%">
+            <XAxis dataKey="name" />
+            <YAxis domain={[0, 900]} />
+            <CartesianGrid strokeDasharray="3 3" />
+            <Tooltip />
+
+            {/* <Bar dataKey="uv" fill="#EE4274" radius={[8, 8, 0, 0]} barSize={20} /> */}
+
+            <Line
+              type="monotone"
+              dataKey="count"
+              stroke="#2E8BFF"
+              strokeWidth={2}
+              dot={{ r: 2, stroke: '#2E8BFF', strokeWidth: 1, fill: '#fff' }}
+              connectNulls
+            >
+              <LabelList dataKey="count" position="top" />
+            </Line>
+          </ComposedChart>
+        </ResponsiveContainer>
+      </Card>
+    </Column>
+  );
+};
+
+// =========================
+// Main Component
+// =========================
+const DashboardPage: React.FC<DashboardPageProps> = ({ isSidebarOpen, isMobile, toggleSidebar }) => {
+  const [dataUser, setDataUser] = useState<any[]>([]);
+  const [page, setPage] = useState<number>(29);
+  const isFetched = useRef<boolean>(false);
+
+        const currentYear = new Date().getFullYear();
+  const years = [currentYear - 2, currentYear - 1, currentYear];
+  const [year, setYear] = useState<number | 'All'>('All');
+
+
+  useEffect(() => {
+    // console.log(isSidebarOpen);
+    // console.log(toggleSidebar);
+    // console.log(isMobile);
+  }, []);
+
+        const dataSource: TrialParticipant[] = [
+  {
+    key: '1',
+    no: 1,
+    name: 'John Doe',
+    dateOfBirth: '2010-05-12',
+    ageCategory: 'Kids',
+    email: 'johndoe@email.com',
+    whatsapp: '+6281111111111',
+    branch: 'BSD',
+    trialClass: 'Taekwondo',
+    day: 'Monday',
+    time: '10:00 AM',
+    status: 'Booked',
+  },
+  {
+    key: '2',
+    no: 2,
+    name: 'Sarah Lim',
+    dateOfBirth: '2005-11-20',
+    ageCategory: 'Teens',
+    email: 'sarah.lim@email.com',
+    whatsapp: '+6281222222222',
+    branch: 'Kuningan',
+    trialClass: 'Yoga',
+    day: 'Wednesday',
+    time: '04:00 PM',
+    status: 'Attended',
+  },
+  {
+    key: '3',
+    no: 3,
+    name: 'Michael Tan',
+    dateOfBirth: '1998-07-03',
+    ageCategory: 'Adults',
+    email: 'michael.tan@email.com',
+    whatsapp: '+6281333333333',
+    branch: 'BSD',
+    trialClass: 'Dance',
+    day: 'Saturday',
+    time: '02:00 PM',
+    status: 'Converted to Member',
+  },
+  {
+    key: '4',
+    no: 4,
+    name: 'Emily Chen',
+    dateOfBirth: '2012-09-15',
+    ageCategory: 'Kids',
+    email: 'emily.chen@email.com',
+    whatsapp: '+6281444444444',
+    branch: 'BSD',
+    trialClass: 'Ballet',
+    day: 'Tuesday',
+    time: '03:00 PM',
+    status: 'Attended',
+  },
+  {
+    key: '5',
+    no: 5,
+    name: 'David Lee',
+    dateOfBirth: '2007-01-30',
+    ageCategory: 'Teens',
+    email: 'david.lee@email.com',
+    whatsapp: '+6281555555555',
+    branch: 'Kuningan',
+    trialClass: 'Taekwondo',
+    day: 'Thursday',
+    time: '05:00 PM',
+    status: 'Booked',
+  },
+  {
+    key: '6',
+    no: 6,
+    name: 'Anna Wong',
+    dateOfBirth: '1995-03-22',
+    ageCategory: 'Adults',
+    email: 'anna.wong@email.com',
+    whatsapp: '+6281666666666',
+    branch: 'Kuningan',
+    trialClass: 'Yoga',
+    day: 'Friday',
+    time: '07:00 PM',
+    status: 'Attended',
+  },
+  {
+    key: '7',
+    no: 7,
+    name: 'Kevin Hartono',
+    dateOfBirth: '2011-08-09',
+    ageCategory: 'Kids',
+    email: 'kevin.h@email.com',
+    whatsapp: '+6281777777777',
+    branch: 'Sentul',
+    trialClass: 'Swimming',
+    day: 'Sunday',
+    time: '09:00 AM',
+    status: 'Booked',
+  },
+  {
+    key: '8',
+    no: 8,
+    name: 'Olivia Tan',
+    dateOfBirth: '2006-12-18',
+    ageCategory: 'Teens',
+    email: 'olivia.t@email.com',
+    whatsapp: '+6281888888888',
+    branch: 'Sentul',
+    trialClass: 'Dance',
+    day: 'Monday',
+    time: '11:00 AM',
+    status: 'Attended',
+  },
+  {
+    key: '9',
+    no: 9,
+    name: 'Daniel Park',
+    dateOfBirth: '1992-04-10',
+    ageCategory: 'Adults',
+    email: 'daniel.park@email.com',
+    whatsapp: '+6281999999999',
+    branch: 'BSD',
+    trialClass: 'Gymnastics',
+    day: 'Wednesday',
+    time: '06:00 PM',
+    status: 'Absent',
+  },
+  {
+    key: '10',
+    no: 10,
+    name: 'Sophia Widjaja',
+    dateOfBirth: '2013-11-05',
+    ageCategory: 'Kids',
+    email: 'sophia.w@email.com',
+    whatsapp: '+6282111111111',
+    branch: 'Sentul',
+    trialClass: 'Taekwondo',
+    day: 'Friday',
+    time: '04:00 PM',
+    status: 'Attended',
+  },
+  {
+    key: '11',
+    no: 11,
+    name: 'Jason Lim',
+    dateOfBirth: '2004-02-14',
+    ageCategory: 'Teens',
+    email: 'jason.lim@email.com',
+    whatsapp: '+6282222222222',
+    branch: 'Kuningan',
+    trialClass: 'Yoga',
+    day: 'Saturday',
+    time: '01:00 PM',
+    status: 'Booked',
+  },
+  {
+    key: '12',
+    no: 12,
+    name: 'Rachel Kim',
+    dateOfBirth: '1999-06-27',
+    ageCategory: 'Adults',
+    email: 'rachel.kim@email.com',
+    whatsapp: '+6282333333333',
+    branch: 'Kuningan',
+    trialClass: 'Dance',
+    day: 'Sunday',
+    time: '03:00 PM',
+    status: 'Converted to Member',
+  },
+  {
+    key: '13',
+    no: 13,
+    name: 'Andrew Pratama',
+    dateOfBirth: '2010-07-21',
+    ageCategory: 'Kids',
+    email: 'andrew.p@email.com',
+    whatsapp: '+6282444444444',
+    branch: 'Kuningan',
+    trialClass: 'Ballet',
+    day: 'Monday',
+    time: '02:00 PM',
+    status: 'Booked',
+  },
+  {
+    key: '14',
+    no: 14,
+    name: 'Jessica Liu',
+    dateOfBirth: '2008-10-16',
+    ageCategory: 'Teens',
+    email: 'jessica.liu@email.com',
+    whatsapp: '+6282555555555',
+    branch: 'BSD',
+    trialClass: 'Swimming',
+    day: 'Tuesday',
+    time: '10:00 AM',
+    status: 'Attended',
+  },
+  {
+    key: '15',
+    no: 15,
+    name: 'Markus Santoso',
+    dateOfBirth: '1996-09-01',
+    ageCategory: 'Adults',
+    email: 'markus.s@email.com',
+    whatsapp: '+6282666666666',
+    branch: 'BSD',
+    trialClass: 'Yoga',
+    day: 'Wednesday',
+    time: '08:00 PM',
+    status: 'Absent',
+  },
+  {
+    key: '16',
+    no: 16,
+    name: 'Clara Ong',
+    dateOfBirth: '2012-01-07',
+    ageCategory: 'Kids',
+    email: 'clara.ong@email.com',
+    whatsapp: '+6282777777777',
+    branch: 'Kuningan',
+    trialClass: 'Taekwondo',
+    day: 'Thursday',
+    time: '09:00 AM',
+    status: 'Attended',
+  },
+  {
+    key: '17',
+    no: 17,
+    name: 'Ryan Chandra',
+    dateOfBirth: '2005-05-25',
+    ageCategory: 'Teens',
+    email: 'ryan.c@email.com',
+    whatsapp: '+6282888888888',
+    branch: 'Sentul',
+    trialClass: 'Dance',
+    day: 'Friday',
+    time: '05:00 PM',
+    status: 'Booked',
+  },
+  {
+    key: '18',
+    no: 18,
+    name: 'Natalie Ho',
+    dateOfBirth: '1993-12-02',
+    ageCategory: 'Adults',
+    email: 'natalie.ho@email.com',
+    whatsapp: '+6282999999999',
+    branch: 'Sentul',
+    trialClass: 'Gymnastics',
+    day: 'Saturday',
+    time: '11:00 AM',
+    status: 'Attended',
+  },
+  {
+    key: '19',
+    no: 19,
+    name: 'William Chen',
+    dateOfBirth: '2011-03-19',
+    ageCategory: 'Kids',
+    email: 'william.c@email.com',
+    whatsapp: '+6283111111111',
+    branch: 'Sentul',
+    trialClass: 'Ballet',
+    day: 'Sunday',
+    time: '01:00 PM',
+    status: 'Booked',
+  },
+  {
+    key: '20',
+    no: 20,
+    name: 'Grace Park',
+    dateOfBirth: '2007-08-11',
+    ageCategory: 'Teens',
+    email: 'grace.p@email.com',
+    whatsapp: '+6283222222222',
+    branch: 'Sentul',
+    trialClass: 'Swimming',
+    day: 'Monday',
+    time: '03:00 PM',
+    status: 'Converted to Member',
+  },
+
+  // Tambahan 10 peserta baru
+  {
+    key: '21',
+    no: 21,
+    name: 'Leonardo Kusuma',
+    dateOfBirth: '2014-02-18',
+    ageCategory: 'Kids',
+    email: 'leo.k@email.com',
+    whatsapp: '+6283333333333',
+    branch: 'Sentul',
+    trialClass: 'Gymnastics',
+    day: 'Tuesday',
+    time: '10:30 AM',
+    status: 'Booked',
+  },
+  {
+    key: '22',
+    no: 22,
+    name: 'Melissa Tan',
+    dateOfBirth: '2009-09-09',
+    ageCategory: 'Teens',
+    email: 'melissa.t@email.com',
+    whatsapp: '+6283444444444',
+    branch: 'Kuningan',
+    trialClass: 'Ballet',
+    day: 'Thursday',
+    time: '04:30 PM',
+    status: 'Attended',
+  },
+  {
+    key: '23',
+    no: 23,
+    name: 'Jonathan Sim',
+    dateOfBirth: '1997-11-23',
+    ageCategory: 'Adults',
+    email: 'jon.sim@email.com',
+    whatsapp: '+6283555555555',
+    branch: 'BSD',
+    trialClass: 'Swimming',
+    day: 'Friday',
+    time: '06:30 PM',
+    status: 'Booked',
+  },
+  {
+    key: '24',
+    no: 24,
+    name: 'Cindy Wijaya',
+    dateOfBirth: '2012-04-14',
+    ageCategory: 'Kids',
+    email: 'cindy.w@email.com',
+    whatsapp: '+6283666666666',
+    branch: 'BSD',
+    trialClass: 'Yoga',
+    day: 'Saturday',
+    time: '09:30 AM',
+    status: 'Attended',
+  },
+  {
+    key: '25',
+    no: 25,
+    name: 'Victor Halim',
+    dateOfBirth: '2006-06-06',
+    ageCategory: 'Teens',
+    email: 'victor.h@email.com',
+    whatsapp: '+6283777777777',
+    branch: 'Kuningan',
+    trialClass: 'Taekwondo',
+    day: 'Sunday',
+    time: '01:30 PM',
+    status: 'Absent',
+  },
+  {
+    key: '26',
+    no: 26,
+    name: 'Stephanie Ong',
+    dateOfBirth: '1994-01-27',
+    ageCategory: 'Adults',
+    email: 'steph.ong@email.com',
+    whatsapp: '+6283888888888',
+    branch: 'Kuningan',
+    trialClass: 'Dance',
+    day: 'Monday',
+    time: '07:00 PM',
+    status: 'Converted to Member',
+  },
+  {
+    key: '27',
+    no: 27,
+    name: 'Felix Gunawan',
+    dateOfBirth: '2010-10-11',
+    ageCategory: 'Kids',
+    email: 'felix.g@email.com',
+    whatsapp: '+6283999999999',
+    branch: 'Sentul',
+    trialClass: 'Tennis',
+    day: 'Wednesday',
+    time: '03:30 PM',
+    status: 'Booked',
+  },
+  {
+    key: '28',
+    no: 28,
+    name: 'Amanda Lee',
+    dateOfBirth: '2005-12-05',
+    ageCategory: 'Teens',
+    email: 'amanda.l@email.com',
+    whatsapp: '+6284000000000',
+    branch: 'Sentul',
+    trialClass: 'Badminton',
+    day: 'Thursday',
+    time: '05:30 PM',
+    status: 'Attended',
+  },
+  {
+    key: '29',
+    no: 29,
+    name: 'Christian Prabowo',
+    dateOfBirth: '1991-03-03',
+    ageCategory: 'Adults',
+    email: 'chris.p@email.com',
+    whatsapp: '+6284111111111',
+    branch: 'BSD',
+    trialClass: 'Padel',
+    day: 'Friday',
+    time: '08:30 PM',
+    status: 'Absent',
+  },
+  {
+    key: '30',
+    no: 30,
+    name: 'Irene Tjahjadi',
+    dateOfBirth: '2013-07-19',
+    ageCategory: 'Kids',
+    email: 'irene.t@email.com',
+    whatsapp: '+6284222222222',
+    branch: 'Sentul',
+    trialClass: 'Basketball',
+    day: 'Sunday',
+    time: '10:30 AM',
+    status: 'Attended',
+  },
+  {
+    key: '31',
+    no: 31,
+    name: 'Irene Setiadi',
+    dateOfBirth: '2013-07-19',
+    ageCategory: 'Kids',
+    email: 'irene.s@email.com',
+    whatsapp: '+62843333333333',
+    branch: 'Kuningan',
+    trialClass: 'Zumba',
+    day: 'Sunday',
+    time: '10:30 AM',
+    status: 'Attended',
+  },  
+];
+
+
+
+  return (
+    <div style={{ ...styles.container, marginLeft: isSidebarOpen && !isMobile ? '274px' : '0' }}>
+      <Container>
+
+<Row className="mb-2">
+  <Column size={12} className="flex items-center gap-4">
+
+    <div>
+      <span>Choose Year: </span>
+      <Select
+        value={year}
+        onChange={setYear}
+        style={{ width: 120 }}
+      >
+        <Select.Option value="All">All</Select.Option>
+        {years.map((y) => (
+          <Select.Option key={y} value={y}>
+            {y}
+          </Select.Option>
+        ))}
+      </Select>
+    </div>
+
+
+          </Column>
+        </Row>
+        
+        {/* Web Traffic */}
+        <Row className="mb-0">
+          <Column size={9}>
+            <BarChartCard />
+          </Column>
+
+          <Column size={3}>
+            <TodayOnlineStatCard />
+            <ThisWeekStatCard />
+            <ThisMonthStatCard />
+            <ThisYearStatCard />
+          </Column>
+        </Row>
+
+        {/* Free Trial / Class */}
+        <Row className="mb-0">
+          <Column size={12}>
+            <FreeTrialStatCard />
+          </Column>
+
+          <Column size={7}>
+            <ParticipantByBranchStatCard />
+          </Column>          
+
+          <Column size={5} style={{ marginBottom: 30 }}>
+            <ParticipantByAgeGroupStatCard />
+          </Column>        
+
+          <Column size={6}>
+              <AverageAgeByBranchCard dataSource={dataSource} />
+          </Column>      
+
+          <Column size={6}>
+              <TopClassPerBranchCard dataSource={dataSource} />
+          </Column>    
+
+          <Column size={12}>
+              <ClassDistributionCard dataSource={dataSource} />
+          </Column>
+        </Row>
+
+        <Row className="mb-0">
+          <Column size={12}>
+            <InquiryAnalysisCard
+              dataSource={[
+                { subject: "corporate_wellness", count: 22 },
+                { subject: "corporate_event", count: 18 },
+                { subject: "sports_event", count: 15 },
+                { subject: "birthday_party", count: 10 },
+                { subject: "business_partnership", count: 12 },
+                { subject: "facility_rental", count: 8 },
+                { subject: "community_charity", count: 5 },
+                { subject: "wellness_retreat", count: 6 },
+                { subject: "other", count: 4 },
+              ]}
+            />
+          </Column>
+        </Row>
+      </Container>
+    </div>
+  );
+};
+
+// =========================
+// Styles
+// =========================
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    // position: 'absolute', // typo fix from 'abosulte'
+    flex: 1,
+    padding: '0px',
+    marginTop: '60px',
+    paddingBottom: '60px',
+    transition: 'margin-left 0.3s ease-in-out',
+  },
+  numberVisitor: {
+    color: '#7694ff',
+    fontWeight: 'bold',
+    fontFamily: 'Poppins',
+    margin: 0,
+  },
+  numberVisitorIcon: {
+    color: '#fff',
+    fontWeight: 'bold',
+    backgroundColor: '#7694ff',
+    marginLeft: 10,
+  },
+  titleFreeTrialCard: { margin: 0, marginBottom: 16, color: '#cd8a42', fontWeight: 600 },
+};
+
+export default DashboardPage;

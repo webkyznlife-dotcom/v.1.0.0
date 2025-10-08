@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Pontano+Sans:wght@300;400;700&family=Barlow:wght@300;400;700&family=Open+Sans:wght@300;400;700&family=Poppins:wght@300;400;700&family=Inter:wght@300;400;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('./app/assets/fonts/Poppins/Poppins-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Rubik';
+  src: url('./app/assets/fonts/Rubik/Rubik-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Raleway';
+  src: url('./app/assets/fonts/Raleway/Raleway-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+body {
+  margin: 0;
+  /* font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif; */
+     font-family: 'Poppins', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+
+/* Untuk scroll bar hide, dipakai di programs */
+
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+
+
+/* End */
+
+
+
+@keyframes fadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 0.6s ease-out forwards;
+}
+
+
+/* For menu bottom show dialog other menu */
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+
+
+
+/* Scroll */
+
+.custom-scroll-table .ant-table-body {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(0,0,0,0.2) transparent; /* thumb semi-transparent, track transparan */
+}
+
+/* Chrome, Edge, Safari */
+.custom-scroll-table .ant-table-body::-webkit-scrollbar {
+  width: 8px; 
+  height: 8px; 
+}
+
+.custom-scroll-table .ant-table-body::-webkit-scrollbar-track {
+  background: transparent; /* track transparan */
+}
+
+.custom-scroll-table .ant-table-body::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.2); /* thumb abu lembut */
+  border-radius: 4px;
+  border: 1px solid transparent;
+}
+
+.custom-scroll-table .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(0,0,0,0.35); /* hover lebih gelap */
+}
+
+
+/* Ini untuk halaman What is KYZN Life */
+
+/* global.css atau App.css */
+.scrollbar-custom::-webkit-scrollbar {
+  height: 8px; /* tinggi scroll bar */
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: #f0f0f0;
+  border-radius: 4px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: #9f7aea; /* ungu */
+  border-radius: 4px;
+}

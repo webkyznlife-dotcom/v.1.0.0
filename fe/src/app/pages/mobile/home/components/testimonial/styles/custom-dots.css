@@ -1,0 +1,33 @@
+/* custom-dots.css */
+.slick-dots {
+  bottom: -30px; /* atur posisi */
+}
+
+.slick-dots li {
+  margin: 0 4px; /* jarak antar dot */
+}
+
+.slick-dots li button {
+  width: 30px;
+  height: 6px;
+  padding: 0;
+}
+
+.slick-dots li button:before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 6px;
+  border-radius: 3px; /* biar ujungnya melengkung */
+  background-color: #9ad4d6; /* warna default */
+  opacity: 1;
+  transition: background-color 0.3s;
+}
+
+.slick-dots li.slick-active button:before {
+  background-color: #00a6a6; /* warna aktif */
+}
+
+.slick-dots li {
+  margin: 0 10px; /* tambah jarak antar dot */
+}

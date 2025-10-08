@@ -1,0 +1,33 @@
+/* custom-dots.css */
+.branch-modal-slider .slick-dots {
+  bottom: -40px !important; /* atur posisi */
+}
+
+.branch-modal-slider .slick-dots li {
+  margin: 0 4px; /* jarak antar dot */
+}
+
+.branch-modal-slider .slick-dots li button {
+  width: 30px;
+  height: 6px;
+  padding: 0;
+}
+
+.branch-modal-slider .slick-dots li button:before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 6px;
+  border-radius: 3px; /* biar ujungnya melengkung */
+  background-color: #cccccc !important; /* warna default */
+  /* opacity: 1; */
+  transition: background-color 0.3s;
+}
+
+.branch-modal-slider .slick-dots li.slick-active button:before {
+  background-color: #000000 !important; /* warna aktif */
+}
+
+.branch-modal-slider .slick-dots li {
+  margin: 0 10px !important; /* tambah jarak antar dot */
+}

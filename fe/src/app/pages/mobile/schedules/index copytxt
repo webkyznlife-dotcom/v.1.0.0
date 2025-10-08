@@ -1,0 +1,578 @@
+import React, { useRef, useState, useEffect } from "react";
+import { Container } from "../../../components/web/layout";
+import SchedulesHeader from "./components/schedules-header";
+import { motion, useInView } from "framer-motion";
+import { Select, message } from "antd";
+
+import { NotificationDialog } from "../../../components/mobile/ui/dialogs/NotificationDialog";
+import zumbaImage from "../../../assets/images/program/zumba.png";
+import { MobileHourList } from "./components/schedules-listview/MobileHourList";
+import ScheduleTable, { ScheduleRow } from "./components/schedules";
+
+import axios from "axios";
+
+import dayjs from "dayjs";
+
+interface AgeGroup {
+  mpa_id: number;
+  mpa_min: number;
+  mpa_max: number;
+  mpa_status: boolean;
+}
+
+interface Branch {
+  mb_id: number;
+  mb_name: string;
+  mb_address: string;
+  mb_city: string;
+  mb_province: string;
+  mb_postal_code: string;
+  mb_phone: string;
+  mb_status: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProgramActivityCategory {
+  mpac_id: number;
+  mpac_name: string;
+  mpac_status: boolean;
+}
+
+interface ScheduleSlot {
+  program: string;
+  age: string;
+  time: string;
+  instructor: string;
+}
+
+interface ScheduleRowOutput {
+  room: string;
+  schedules: (ScheduleSlot | null)[];
+}
+
+interface Court {
+    mc_id: number;
+    mc_name: string;
+    mc_type: string;
+    mc_status: boolean;
+    created_at: string; // ISO date string
+    updated_at: string; // ISO date string
+}
+
+const { Option } = Select;
+
+// ======================
+// Inline Styles
+// ====================== 
+const styles: { [key: string]: React.CSSProperties } = {
+  container: {
+    paddingTop: "55px",
+    transition: "margin-left 0.3s ease-in-out",
+  },
+  headingAaccess: {
+    fontFamily: "Rubik, sans-serif",
+    fontWeight: "normal",
+    fontSize: "2.1rem",
+    marginBottom: "0.5rem",
+    letterSpacing: "-0.02em",
+    textAlign: "center",
+  },
+  headingSubAaccess: {
+    fontFamily: "Rubik, sans-serif",
+    fontWeight: "normal",
+    fontSize: "1rem",
+    color: "#555",
+    maxWidth: "700px",
+    margin: "0 auto",
+    textAlign: "center",
+    lineHeight: 1.6,
+  },
+};
+
+// ======================
+// Data: Programs
+// ======================
+// const Schedules = [
+//   { title: "Junior Taekwondo", image: zumbaImage, color: "#FF8A80", category: "Junior", slug: "basketball" },
+//   { title: "Starter Tennis", image: zumbaImage, color: "#80D8FF", category: "Junior", slug: "basketball" },
+//   { title: "Muay Thai", image: zumbaImage, color: "#FF8A80", category: "Adult", slug: "basketball" },
+//   { title: "Yoga", image: zumbaImage, color: "#80D8FF", category: "Adult", slug: "basketball" },
+//   { title: "Zumba", image: zumbaImage, color: "#FF8A80", category: "Adult", slug: "basketball" },
+//   { title: "Pilates", image: zumbaImage, color: "#FF8A80", category: "Adult", slug: "basketball" },
+//   { title: "Batting Cage", image: zumbaImage, color: "#80D8FF", category: "Junior", slug: "basketball" },
+//   { title: "Ninja Warrior", image: zumbaImage, color: "#FF8A80", category: "Junior", slug: "basketball" },
+//   { title: "Junior HipHop Dance", image: zumbaImage, color: "#FF8A80", category: "Junior", slug: "basketball" },
+//   { title: "Adult Soccer", image: zumbaImage, color: "#80D8FF", category: "Adult", slug: "basketball" },
+//   { title: "Junior Basketball", image: zumbaImage, color: "#80D8FF", category: "Junior", slug: "basketball" },
+//   { title: "Adult Basketball", image: zumbaImage, color: "#80D8FF", category: "Adult", slug: "basketball" },
+// ];
+
+// ======================
+// Data: Schedule Rows
+// ======================
+// const rows: ScheduleRow[] = [
+//   {
+//     room: "Gymnastics",
+//     schedules: [
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "07:00", instructor: "Ramlan Manurung" },
+//       null, null, null, null, null, null,
+//       { program: "Jumper 2-3 yo", age: "2-3 Years", time: "14:00", instructor: "Ramlan Manurung" },
+//       null, null,
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "17:00", instructor: "Nopreza Diky Pangestu" },
+//       null, null,
+//       { program: "Kids Gym U5-7", age: "4-7 Years", time: "20:00", instructor: "Achmad Munandar" },
+//       null, null,
+//     ],
+//   },
+//   {
+//     room: "Indoor 1",
+//     schedules: [
+//       null, null, null,
+//       { program: "Sports U4/5", age: "3-5 Years", time: "10:00", instructor: "Andri Prakarsa" },
+//       null, null, null,
+//       { program: "RockFit U5-7", age: "4-7 Years", time: "14:00", instructor: "Andri Prakarsa" },
+//       { program: "Basketball U5-7", age: "4-7 Years", time: "15:00", instructor: "Dani Rusman" },
+//       null, null, null,
+//       { program: "Basketball U9-18", age: "8-18 Years", time: "19:00", instructor: "Dani Rusman" },
+//       null, null, null,
+//     ],
+//   },
+//   {
+//     room: "Tennis",
+//     schedules: [
+//       null, null, null, null, null, null,
+//       { program: "Sports U4/5", age: "3-5 Years", time: "13:00", instructor: "Andri Prakarsa" },
+//       null,
+//       { program: "Basketball U5-7", age: "4-7 Years", time: "15:00", instructor: "Dani Rusman" },
+//       { program: "Basketball U9-18", age: "8-18 Years", time: "16:00", instructor: "Dani Rusman" },
+//       null, null, null, null, null, null,
+//     ],
+//   },
+//   {
+//     room: "Basketball",
+//     schedules: [
+//       null, null, null, null, null, null, null, null, null, null, null,
+//       { program: "Sports U4/5", age: "3-5 Years", time: "13:00", instructor: "Andri Prakarsa" },
+//       null,
+//       { program: "Basketball U5-7", age: "4-7 Years", time: "15:00", instructor: "Dani Rusman" },
+//       { program: "Basketball U9-18", age: "8-18 Years", time: "16:00", instructor: "Dani Rusman" },
+//       null,
+//     ],
+//   },
+//   {
+//     room: "Swimming",
+//     schedules: [
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "07:00", instructor: "Ramlan Manurung" },
+//       null, null, null, null, null, null,
+//       { program: "Jumper 2-3 yo", age: "2-3 Years", time: "14:00", instructor: "Ramlan Manurung" },
+//       null, null,
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "17:00", instructor: "Nopreza Diky Pangestu" },
+//       null, null,
+//       { program: "Kids Gym U5-7", age: "4-7 Years", time: "20:00", instructor: "Achmad Munandar" },
+//       null, null,
+//     ],
+//   },
+//   {
+//     room: "Futsal",
+//     schedules: [
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "07:00", instructor: "Ramlan Manurung" },
+//       null, null, null, null, null, null,
+//       { program: "Jumper 2-3 yo", age: "2-3 Years", time: "14:00", instructor: "Ramlan Manurung" },
+//       null, null,
+//       { program: "Tots Gym U4", age: "3-4 Years", time: "17:00", instructor: "Nopreza Diky Pangestu" },
+//       null, null,
+//       { program: "Kids Gym U5-7", age: "4-7 Years", time: "20:00", instructor: "Achmad Munandar" },
+//       null, null,
+//     ],
+//   },
+// ];
+
+// ======================
+// Data: Branch & Program
+// ======================
+const branchList = ["Kuningan", "BSD", "Sentul", "Surabaya"];
+const programTypes = ["All Programs", "Ballet", "Dance", "Swimming", "Futsal"];
+
+// ======================
+// Generate Days with Dates
+// ======================
+const today = new Date();
+const dayOfWeek = today.getDay(); // Sunday = 0, Monday = 1
+const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+const monday = new Date(today);
+monday.setDate(today.getDate() + diffToMonday);
+
+const daysWithDates = Array.from({ length: 7 }).map((_, i) => {
+  const current = new Date(monday);
+  current.setDate(monday.getDate() + i);
+  const dayName = current.toLocaleDateString("en-US", { weekday: "long" });
+  const dateStr = current.toLocaleDateString("en-GB"); // dd/mm/yyyy
+  return { day: dayName, date: dateStr };
+});
+
+// ======================
+// Main Component
+// ======================
+const SchedulesMobile: React.FC = () => {
+  // ======================
+  // States
+  // ======================
+  const [showScheduleList, setShowScheduleList] = useState(false);
+  const [activeDay, setActiveDay] = useState<string | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+
+  const [selectedProgram, setSelectedProgram] = useState("All Programs");
+  const [isSticky, setIsSticky] = useState(false);
+
+  const [selectedAge, setSelectedAge] = useState("All");
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedCourt, setSelectedCourt] = useState("All");
+
+  const [ageGroups, setAgeGroups] = useState<AgeGroup[]>([]);
+  const [branchesData, setBranchesData] = useState<Branch[]>([]);
+  const [courts, setCourts] = useState<Court[]>([]);
+
+  const [schedules, setSchedules] = useState<ScheduleRowOutput[]>([]);
+  const [pickDate, setPickDate] = useState(dayjs().format("YYYY-MM-DD")); 
+
+  const [activeTab, setActiveTab] = useState<string>(
+    new Date().toLocaleDateString("en-GB") // format dd/mm/yyyy
+  );    
+
+  const sectionRef = useRef(null);
+  const stickyRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { amount: 0.3 });
+
+  const API_URL = process.env.REACT_APP_API_URL;
+  const API_URLIMAGE = process.env.REACT_APP_API_IMAGE_URL;    
+
+
+  // ======================
+  // Fetch Data Functions
+  // ======================
+  const fetchAgeGroups = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/user/v1/age-groups`);
+      if (response.data.success) {
+        setAgeGroups(response.data.data); // asumsi response.data.data adalah array string nama age group
+      } else {
+        message.error("Failed to fetch age groups");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error fetching age groups");
+    }
+  };
+
+  const fetchBranches = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/user/v1/branch`);
+      if (response.data.success) {
+        // Ambil hanya yang aktif (mb_status === true)
+        const activeBranches = response.data.data.filter((branch: Branch) => branch.mb_status);
+        setBranchesData(activeBranches);
+      } else {
+        message.error("Failed to fetch branches");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error fetching branches");
+    }
+  };
+
+  const fetchCourts = async () => {
+    try {
+      const response = await axios.get<{ success: boolean; data: Court[] }>(`${API_URL}/user/v1/court`);
+
+      if (response.data.success && response.data.data) {
+        // Ambil hanya yang aktif
+        const activeCourts = response.data.data.filter((court) => court.mc_status);
+        setCourts(activeCourts);
+      } else {
+        message.error("Failed to fetch courts");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error fetching courts");
+    }
+  };
+
+
+  const fetchDataSchedules = async (
+    dateParam?: string | null,
+    ageParam?: string | null,
+    branchParam?: string | null,
+    courtParam?: string | null
+  ) => {
+    try {
+      const response = await axios.post(`${API_URL}/user/v1/schedules/formatted`, {
+        selectedAge: ageParam !== undefined ? ageParam : selectedAge,
+        selectedBranch: branchParam !== undefined ? branchParam : selectedBranch,
+        selectedCourt: courtParam !== undefined ? courtParam : selectedCourt,
+        pickDate: dateParam !== undefined ? dateParam : pickDate,
+      });
+
+      if (response.data.success) {
+        const scheduleRows: ScheduleRow[] = response.data.data;
+        setSchedules(scheduleRows);
+      } else {
+        message.error("Failed to fetch schedules");
+      }
+    } catch (err) {
+      console.error(err);
+      message.error("Error fetching schedules");
+    }
+  };
+
+
+
+  // ======================
+  // Effects
+  // ======================
+  useEffect(() => {
+
+    fetchAgeGroups();
+    fetchBranches();
+    fetchCourts();
+    
+    const formattedToday = today.toISOString().split("T")[0]; // YYYY-MM-DD
+    fetchDataSchedules(formattedToday, "All", null, "All"); // pakai nilai baru langsung   
+    
+    
+    const handleScroll = () => {
+      if (!stickyRef.current) return;
+      const offsetTop = stickyRef.current.getBoundingClientRect().top;
+      setIsSticky(offsetTop <= 55);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // ======================
+  // Handlers
+  // ======================
+  const handleSubmitFilter = () => {
+    // const defaults = { selectedAge: "All", selectedBranch: "" };
+    // const hasDefault =
+    //   selectedAge === defaults.selectedAge || selectedBranch === defaults.selectedBranch;
+
+    // if (hasDefault) {
+    //   setDialogMessage(
+    //     "Some filters are still set to default values. Selecting 'All' is not allowed, please choose a specific option."
+    //   );
+    //   setShowDialog(true);
+    // } else {
+      setShowScheduleList(true);
+      setActiveDay(null);
+    // }
+
+     fetchDataSchedules();
+
+  };
+
+  const toggleDay = (day: string) => setActiveDay(activeDay === day ? null : day);
+
+  // ======================
+  // Render
+  // ======================
+  return (
+    <div style={styles.container}>
+      <Container style={{ padding: 0, paddingBottom: "50px" }}>
+        {/* Header */}
+        <SchedulesHeader title="Schedules" breadcrumb="Home / Schedules" />
+
+        {/* Title & Description */}
+        <div ref={sectionRef} className="mt-4 mb-0 px-6 pt-0">
+          <motion.h2
+            style={styles.headingAaccess}
+            initial={{ opacity: 0, y: 30 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            Discover Our Schedules
+          </motion.h2>
+          <motion.p
+            style={styles.headingSubAaccess}
+            initial={{ opacity: 0, y: 20 }}
+            animate={isInView ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 }}
+          >
+            Schedules are thoughtfully organized to support every stage of your child’s
+            learning journey. Discover flexible and structured scheduling options that
+            align with your child's interests, ensuring a balanced and enriching experience.
+          </motion.p>
+        </div>
+
+        {/* Sticky Filter */}
+        <div
+          ref={stickyRef}
+          className={`sticky top-[55px] z-50 bg-white pt-3 transition-shadow duration-300 ${
+            isSticky ? "shadow-md border-b border-gray-200" : ""
+          }`}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 px-4 sm:px-6 lg:px-10 mb-6">
+            {/* Filter: Age & Branch */}
+            <div className="flex gap-2 w-full">
+              {/* Age */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                  Filter by Ages
+                </label>
+                <Select
+                  placeholder="Select Age"
+                  value={selectedAge}
+                  onChange={(val) => setSelectedAge(val || "All")}
+                  className="text-gray-800 w-full"
+                >
+                  <Option value="All">All</Option>
+                  {ageGroups.map((age) => (
+                    <Option key={age.mpa_id} value={age.mpa_id}>
+                      {`${age.mpa_min} - ${age.mpa_max} Years`}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Branch */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                  Filter by Branch
+                </label>
+                <Select
+                  placeholder="Choose one"
+                  value={selectedBranch}
+                  onChange={(val) => setSelectedBranch(val || "")}
+                  className="text-gray-800 w-full"
+                >
+                  <Option value="">Choose one</Option>
+                  {branchesData.map((branch) => (
+                    <Option key={branch.mb_id} value={branch.mb_id}>
+                      {branch.mb_name}
+                    </Option>
+                  ))}
+                </Select>
+              </div>
+            </div>
+
+            {/* Program */}
+            <div className="w-full">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                Filter by Court
+              </label>
+              <Select
+                placeholder="All"
+                value={selectedCourt}
+                onChange={(val) => setSelectedCourt(val || "")}
+                className="text-gray-800 w-full"
+              >
+                <Option value="">All Court</Option>
+                  {courts.map((court) => (
+                    <Option key={court.mc_id} value={court.mc_id}>
+                      {court.mc_name}
+                    </Option>
+                  ))}
+              </Select>
+            </div>
+
+            {/* Buttons */}
+            <div className="w-full flex gap-2">
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const formattedToday = today.toISOString().split("T")[0]; // YYYY-MM-DD
+
+                  setPickDate(formattedToday);    // update date untuk fetchDataSchedules
+                  setSelectedAge("All");
+                  setSelectedBranch("");
+                  setSelectedCourt("All");
+                  setShowScheduleList(false);
+
+                  fetchDataSchedules(formattedToday, "All", null, "All"); // pakai nilai baru langsung
+                                    
+                }}
+                className="px-4 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 flex-1"
+              >
+                Reset
+              </button>
+              <button
+                onClick={handleSubmitFilter}
+                className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex-1"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Day List */}
+        {showScheduleList && (
+          <div className="px-4 sm:px-6 lg:px-10 space-y-3">
+            {daysWithDates.map(({ day, date }) => {
+              const todayStr = new Date().toLocaleDateString("en-GB"); // dd/mm/yyyy
+              const isToday = date === todayStr;
+
+              return (
+                <div
+                  key={day}
+                  className={`rounded-lg overflow-hidden shadow-sm ${
+                    isToday ? "bg-blue-50" : "bg-white"
+                  }`}
+                >
+                  <button
+                    className="w-full text-left px-4 py-3 flex justify-between items-center hover:bg-gray-100 transition-colors"
+                    onClick={() => toggleDay(day)}
+                  >
+                    <div>
+                      <div className="font-semibold text-gray-800">{day}</div>
+                      <div
+                        className={`text-sm ${
+                          isToday ? "text-blue-600 font-medium" : "text-gray-500"
+                        }`}
+                      >
+                        {date}
+                      </div>
+                    </div>
+                    <div
+                      className={`transform transition-transform ${
+                        activeDay === day ? "rotate-180" : ""
+                      }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 text-gray-400"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 14a1 1 0 01-.707-.293l-5-5a1 1 0 111.414-1.414L10 11.586l4.293-4.293a1 1 0 111.414 1.414l-5 5A1 1 0 0110 14z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                  </button>
+
+                  {activeDay === day && (
+                    <div className="mt-2 border-t border-gray-200">
+                      <MobileHourList rows={schedules} />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Container>
+
+      <NotificationDialog
+        visible={showDialog}
+        onClose={() => setShowDialog(false)}
+        message={dialogMessage}
+      />
+    </div>
+  );
+};
+
+export default SchedulesMobile;
